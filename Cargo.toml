@@ -6,6 +6,7 @@ edition = "2018"
 
 [dependencies]
 conllx = "0.12.1"
+edit_tree = "0.1"
 failure = "0.1"
 ordered-float = "1"
 petgraph = "0.4"

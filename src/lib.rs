@@ -9,6 +9,8 @@ pub mod deprel;
 
 pub mod layer;
 
+pub mod lemma;
+
 pub mod numberer;
 
 /// An encoding with its probability.
