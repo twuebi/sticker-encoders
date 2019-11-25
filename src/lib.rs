@@ -11,8 +11,6 @@ pub mod layer;
 
 pub mod lemma;
 
-pub mod numberer;
-
 /// An encoding with its probability.
 pub struct EncodingProb<E> {
     encoding: E,

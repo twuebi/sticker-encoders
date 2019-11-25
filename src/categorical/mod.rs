@@ -3,15 +3,15 @@ use std::marker::PhantomData;
 
 use conllx::graph::Sentence;
 use failure::Error;
+use numberer::Numberer;
 
-use crate::numberer::Numberer;
 use crate::{EncodingProb, SentenceDecoder, SentenceEncoder};
 
 mod mutability {
     use std::cell::RefCell;
     use std::hash::Hash;
 
-    use crate::numberer::Numberer;
+    use numberer::Numberer;
 
     pub trait Number<V>
     where
@@ -181,11 +181,11 @@ mod tests {
     use std::path::Path;
 
     use conllx::io::Reader;
+    use numberer::Numberer;
 
     use super::{EncodingProb, MutableCategoricalEncoder, SentenceDecoder, SentenceEncoder};
     use crate::layer::Layer;
     use crate::layer::LayerEncoder;
-    use crate::numberer::Numberer;
 
     static NON_PROJECTIVE_DATA: &'static str = "testdata/nonprojective.conll";
 
