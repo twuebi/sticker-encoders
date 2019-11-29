@@ -1,9 +1,6 @@
-use std::fmt;
-
 use conllx::graph::{Node, Sentence};
-use edit_tree::{Apply, EditTree as EditTreeInner};
+use edit_tree::{Apply, EditTree};
 use failure::{Error, Fail};
-use serde_derive::{Deserialize, Serialize};
 
 use super::{EncodingProb, SentenceDecoder, SentenceEncoder};
 
@@ -13,55 +10,6 @@ pub enum EncodeError {
     /// The token does not have a lemma.
     #[fail(display = "token without a lemma: '{}'", form)]
     MissingLemma { form: String },
-}
-
-/// Encoding of a lemmatization as an edit tree.
-#[derive(Clone, Deserialize, Debug, Eq, Hash, PartialEq, Serialize)]
-pub struct EditTree {
-    inner: EditTreeInner<char>,
-}
-
-impl EditTree {
-    /// Pretty print an edit tree.
-    ///
-    /// This is a pretty printer for edit trees that converts them to
-    /// an S-expr. It is not optimized for efficieny and does a lot of
-    /// string allocations.
-    fn pretty_print(node: &EditTreeInner<char>) -> String {
-        match node {
-            EditTreeInner::MatchNode {
-                pre,
-                suf,
-                left,
-                right,
-            } => {
-                let left_str = left
-                    .as_ref()
-                    .map(|left| Self::pretty_print(left))
-                    .unwrap_or_else(|| "()".to_string());
-                let right_str = right
-                    .as_ref()
-                    .map(|right| Self::pretty_print(right))
-                    .unwrap_or_else(|| "()".to_string());
-
-                format!("(match {} {} {} {})", pre, suf, left_str, right_str)
-            }
-            EditTreeInner::ReplaceNode {
-                replacee,
-                replacement,
-            } => format!(
-                "(replace \"{}\" \"{}\")",
-                replacee.iter().collect::<String>(),
-                replacement.iter().collect::<String>(),
-            ),
-        }
-    }
-}
-
-impl fmt::Display for EditTree {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", Self::pretty_print(&self.inner))
-    }
 }
 
 /// Back-off strategy.
@@ -88,7 +36,7 @@ impl EditTreeEncoder {
 }
 
 impl SentenceDecoder for EditTreeEncoder {
-    type Encoding = EditTree;
+    type Encoding = EditTree<char>;
 
     fn decode<S>(&self, labels: &[S], sentence: &mut Sentence) -> Result<(), Error>
     where
@@ -108,7 +56,7 @@ impl SentenceDecoder for EditTreeEncoder {
             if let Some(label) = token_labels.as_ref().get(0) {
                 let form = token.form().chars().collect::<Vec<_>>();
 
-                if let Some(lemma) = label.encoding().inner.apply(&form) {
+                if let Some(lemma) = label.encoding().apply(&form) {
                     // If the edit script can be applied, use the
                     // resulting lemma...
                     let lemma = lemma.into_iter().collect::<String>();
@@ -127,7 +75,7 @@ impl SentenceDecoder for EditTreeEncoder {
 }
 
 impl SentenceEncoder for EditTreeEncoder {
-    type Encoding = EditTree;
+    type Encoding = EditTree<char>;
 
     fn encode(&self, sentence: &Sentence) -> Result<Vec<Self::Encoding>, Error> {
         let mut encoding = Vec::with_capacity(sentence.len() - 1);
@@ -137,12 +85,12 @@ impl SentenceEncoder for EditTreeEncoder {
                 form: token.form().to_owned(),
             })?;
 
-            let tree = EditTreeInner::create_tree(
+            let edit_tree = EditTree::create_tree(
                 &token.form().chars().collect::<Vec<_>>(),
                 &lemma.chars().collect::<Vec<_>>(),
             );
 
-            encoding.push(EditTree { inner: tree });
+            encoding.push(edit_tree);
         }
 
         Ok(encoding)
@@ -161,7 +109,7 @@ mod tests {
     fn encode_and_wrap(
         encoder: &EditTreeEncoder,
         sent: &Sentence,
-    ) -> Vec<Vec<EncodingProb<EditTree>>> {
+    ) -> Vec<Vec<EncodingProb<EditTree<char>>>> {
         encoder
             .encode(&sent)
             .unwrap()
@@ -183,12 +131,8 @@ mod tests {
 
     #[test]
     fn display_edit_tree() {
-        let tree = EditTree {
-            inner: EditTreeInner::create_tree(
-                &['l', 'o', 'o', 'p', 't'],
-                &['l', 'o', 'p', 'e', 'n'],
-            ),
-        };
+        let tree =
+            EditTreeInner::create_tree(&['l', 'o', 'o', 'p', 't'], &['l', 'o', 'p', 'e', 'n']);
 
         assert_eq!(
             tree.to_string(),
