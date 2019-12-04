@@ -2,7 +2,18 @@
 name = "sticker-encoders"
 version = "0.1.0"
 authors = ["Daniël de Kok <me@danieldk.eu>"]
+description = "Encoders for linguistic features"
+homepage = "https://github.com/stickeritis/sticker-encoders"
 edition = "2018"
+# license = "BlueOak-1.0.0"
+license-file = "LICENSE.md"
+
+exclude = [
+  ".gitignore",
+  ".github",
+  ".envrc",
+  "shell.nix",
+]
 
 [dependencies]
 conllx = "0.12.1"
