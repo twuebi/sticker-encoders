@@ -24,7 +24,7 @@ impl ToString for DependencyEncoding<RelativePosition> {
 /// This encoder encodes dependency relations as token labels. The
 /// dependency relation is encoded as-is. The position of the head
 /// is encoded relative to the (dependent) token.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct RelativePositionEncoder;
 
 impl RelativePositionEncoder {

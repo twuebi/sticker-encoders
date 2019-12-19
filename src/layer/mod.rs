@@ -65,7 +65,7 @@ impl LayerValue for Token {
 }
 
 /// Encode sentences using a CoNLL-X layer.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct LayerEncoder {
     layer: Layer,
 }

@@ -4,6 +4,7 @@ use std::marker::PhantomData;
 use conllx::graph::Sentence;
 use failure::Error;
 use numberer::Numberer;
+use serde_derive::{Deserialize, Serialize};
 
 use crate::{EncodingProb, SentenceDecoder, SentenceEncoder};
 
@@ -12,6 +13,7 @@ mod mutability {
     use std::hash::Hash;
 
     use numberer::Numberer;
+    use serde_derive::{Deserialize, Serialize};
 
     pub trait Number<V>
     where
@@ -24,6 +26,7 @@ mod mutability {
         fn value(&self, number: usize) -> Option<V>;
     }
 
+    #[derive(Deserialize, Serialize)]
     pub struct ImmutableNumberer<V>(Numberer<V>)
     where
         V: Eq + Hash;
@@ -45,6 +48,7 @@ mod mutability {
         }
     }
 
+    #[derive(Deserialize, Serialize)]
     pub struct MutableNumberer<V>(RefCell<Numberer<V>>)
     where
         V: Eq + Hash;
@@ -81,6 +85,7 @@ pub type ImmutableCategoricalEncoder<E, V> =
 pub type MutableCategoricalEncoder<E, V> = CategoricalEncoder<E, V, mutability::MutableNumberer<V>>;
 
 /// An encoder wrapper that encodes/decodes to a categorical label.
+#[derive(Deserialize, Serialize)]
 pub struct CategoricalEncoder<E, V, M>
 where
     V: Eq + Hash,

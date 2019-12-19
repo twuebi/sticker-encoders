@@ -42,7 +42,7 @@ impl ToString for DependencyEncoding<RelativePOS> {
 /// This encoder encodes dependency relations as token labels. The
 /// dependency relation is encoded as-is. The position of the head
 /// is encoded relative to the (dependent) token by part-of-speech.
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Deserialize, Eq, PartialEq, Serialize)]
 pub struct RelativePOSEncoder;
 
 impl RelativePOSEncoder {
