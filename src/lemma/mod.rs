@@ -1,6 +1,7 @@
 use conllx::graph::{Node, Sentence};
 use edit_tree::{Apply, EditTree};
 use failure::{Error, Fail};
+use serde::{Deserialize, Serialize};
 
 use super::{EncodingProb, SentenceDecoder, SentenceEncoder};
 
@@ -16,6 +17,8 @@ pub enum EncodeError {
 ///
 /// This is the strategy that will be used when an edit tree
 /// could not be applied.
+#[serde(rename_all = "lowercase")]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum BackoffStrategy {
     Nothing,
     Form,
@@ -25,6 +28,7 @@ pub enum BackoffStrategy {
 ///
 /// This encoder encodes a lemma as an edit tree that is applied to an
 /// unlemmatized form.
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct EditTreeEncoder {
     backoff_strategy: BackoffStrategy,
 }
