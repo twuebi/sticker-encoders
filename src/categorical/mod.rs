@@ -21,6 +21,8 @@ mod mutability {
     {
         fn new(numberer: Numberer<V>) -> Self;
 
+        fn len(&self) -> usize;
+
         fn number(&self, value: V) -> Option<usize>;
 
         fn value(&self, number: usize) -> Option<V>;
@@ -37,6 +39,10 @@ mod mutability {
     {
         fn new(numberer: Numberer<V>) -> Self {
             ImmutableNumberer(numberer)
+        }
+
+        fn len(&self) -> usize {
+            self.0.len()
         }
 
         fn number(&self, value: V) -> Option<usize> {
@@ -59,6 +65,10 @@ mod mutability {
     {
         fn new(numberer: Numberer<V>) -> Self {
             MutableNumberer(RefCell::new(numberer))
+        }
+
+        fn len(&self) -> usize {
+            self.0.borrow().len()
         }
 
         fn number(&self, value: V) -> Option<usize> {
@@ -141,6 +151,20 @@ where
                     .collect::<Vec<_>>()
             })
             .collect::<Vec<_>>())
+    }
+}
+
+impl<E, V, M> CategoricalEncoder<E, V, M>
+where
+    V: Eq + Hash,
+    M: mutability::Number<V>,
+{
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    pub fn len(&self) -> usize {
+        self.numberer.len()
     }
 }
 
@@ -229,6 +253,7 @@ mod tests {
         let numberer = Numberer::new(1);
         let encoder = LayerEncoder::new(Layer::Pos);
         let categorical_encoder = MutableCategoricalEncoder::new(encoder, numberer);
+        assert_eq!(categorical_encoder.len(), 1);
         test_encoding(NON_PROJECTIVE_DATA, categorical_encoder);
     }
 }
