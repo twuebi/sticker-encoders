@@ -12,6 +12,7 @@ pub mod layer;
 pub mod lemma;
 
 /// An encoding with its probability.
+#[derive(Debug)]
 pub struct EncodingProb<E> {
     encoding: E,
     prob: f32,
