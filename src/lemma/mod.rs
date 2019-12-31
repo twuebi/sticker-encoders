@@ -85,9 +85,18 @@ impl SentenceEncoder for EditTreeEncoder {
         let mut encoding = Vec::with_capacity(sentence.len() - 1);
 
         for token in sentence.iter().filter_map(Node::token) {
-            let lemma = token.lemma().ok_or_else(|| EncodeError::MissingLemma {
-                form: token.form().to_owned(),
-            })?;
+            let lemma = token
+                .lemma()
+                .or_else(|| {
+                    if token.form() == "_" {
+                        Some("_").to_owned()
+                    } else {
+                        None
+                    }
+                })
+                .ok_or_else(|| EncodeError::MissingLemma {
+                    form: token.form().to_owned(),
+                })?;
 
             let edit_tree = EditTree::create_tree(
                 &token.form().chars().collect::<Vec<_>>(),
@@ -103,6 +112,8 @@ impl SentenceEncoder for EditTreeEncoder {
 
 #[cfg(test)]
 mod tests {
+    use std::iter;
+
     use conllx::graph::{Node, Sentence};
     use conllx::token::{Token, TokenBuilder};
     use edit_tree::EditTree as EditTreeInner;
@@ -194,5 +205,24 @@ mod tests {
         for token in sent_decode.iter().filter_map(Node::token) {
             assert_eq!(token.lemma(), Some(token.form()));
         }
+    }
+
+    #[test]
+    fn handles_underscore_form_lemma() {
+        let sentence: Sentence = iter::once(TokenBuilder::new("_").into()).collect();
+        let encoder = EditTreeEncoder::new(BackoffStrategy::Form);
+        let labels = encode_and_wrap(&encoder, &sentence);
+
+        let mut sent_decode = sentence_from_forms(&["_"]);
+        encoder.decode(&labels, &mut sent_decode).unwrap();
+
+        assert_eq!(sent_decode, sentence_from_pairs(&[("_", "_")]));
+    }
+
+    #[test]
+    fn rejects_empty_lemma_with_nonempty_form() {
+        let sentence = sentence_from_forms(&["iets"]);
+        let encoder = EditTreeEncoder::new(BackoffStrategy::Nothing);
+        assert!(encoder.encode(&sentence).is_err());
     }
 }
