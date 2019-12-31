@@ -1,6 +1,6 @@
 [package]
 name = "sticker-encoders"
-version = "0.1.3"
+version = "0.1.4"
 authors = ["Daniël de Kok <me@danieldk.eu>"]
 description = "Encoders for linguistic features"
 homepage = "https://github.com/stickeritis/sticker-encoders"
