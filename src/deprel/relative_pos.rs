@@ -23,7 +23,7 @@ pub struct RelativePOS {
 
 impl RelativePOS {
     #[allow(dead_code)]
-    pub(crate) fn new(pos: impl Into<String>, position: isize) -> Self {
+    pub fn new(pos: impl Into<String>, position: isize) -> Self {
         RelativePOS {
             pos: pos.into(),
             position,
