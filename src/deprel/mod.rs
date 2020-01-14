@@ -22,6 +22,13 @@ pub struct DependencyEncoding<H> {
 }
 
 impl<H> DependencyEncoding<H> {
+    pub fn new(head: H, label: impl Into<String>) -> Self {
+        DependencyEncoding {
+            head,
+            label: label.into(),
+        }
+    }
+
     /// Get the head representation.
     pub fn head(&self) -> &H {
         &self.head
