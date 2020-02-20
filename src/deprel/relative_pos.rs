@@ -9,6 +9,8 @@ use super::{
 };
 use crate::{EncodingProb, SentenceDecoder, SentenceEncoder};
 
+const ROOT_POS: &str = "ROOT";
+
 /// Relative head position by part-of-speech.
 ///
 /// The position of the head relative to the dependent token,
@@ -42,8 +44,18 @@ impl ToString for DependencyEncoding<RelativePOS> {
 /// This encoder encodes dependency relations as token labels. The
 /// dependency relation is encoded as-is. The position of the head
 /// is encoded relative to the (dependent) token by part-of-speech.
-#[derive(Copy, Clone, Deserialize, Eq, PartialEq, Serialize)]
-pub struct RelativePOSEncoder;
+#[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
+pub struct RelativePOSEncoder {
+    root_relation: String,
+}
+
+impl RelativePOSEncoder {
+    pub fn new(root_relation: impl Into<String>) -> Self {
+        RelativePOSEncoder {
+            root_relation: root_relation.into(),
+        }
+    }
+}
 
 impl RelativePOSEncoder {
     pub(crate) fn decode_idx(
@@ -155,7 +167,7 @@ impl SentenceEncoder for RelativePOSEncoder {
                 .ok_or_else(|| EncodeError::missing_relation(idx, sentence))?;
 
             let head_pos = match &sentence[triple.head()] {
-                Node::Root => "ROOT",
+                Node::Root => ROOT_POS,
                 Node::Token(head_token) => head_token
                     .pos()
                     .ok_or_else(|| EncodeError::missing_pos(idx, sentence))?,
@@ -205,9 +217,12 @@ impl SentenceDecoder for RelativePOSEncoder {
         }
 
         // Fixup tree.
-        let root_idx = find_or_create_root(labels, sentence, |idx, encoding| {
-            Self::decode_idx(&pos_table, idx, encoding).ok()
-        });
+        let root_idx = find_or_create_root(
+            labels,
+            sentence,
+            |idx, encoding| Self::decode_idx(&pos_table, idx, encoding).ok(),
+            &self.root_relation,
+        );
         attach_orphans(labels, sentence, root_idx);
         break_cycles(sentence, root_idx);
 
@@ -220,7 +235,7 @@ pub(crate) fn pos_position_table(sentence: &Sentence) -> HashMap<String, Vec<usi
 
     for (idx, node) in sentence.iter().enumerate() {
         let pos = match node {
-            Node::Root => "ROOT".into(),
+            Node::Root => ROOT_POS.into(),
             Node::Token(token) => match token.pos() {
                 Some(pos) => pos.into(),
                 None => continue,
@@ -242,9 +257,11 @@ mod tests {
     use conllx::graph::{DepTriple, Sentence};
     use conllx::token::TokenBuilder;
 
-    use super::{RelativePOS, RelativePOSEncoder};
+    use super::{RelativePOS, RelativePOSEncoder, ROOT_POS};
     use crate::deprel::{DecodeError, DependencyEncoding};
     use crate::{EncodingProb, SentenceDecoder};
+
+    const ROOT_RELATION: &str = "root";
 
     // Small tests for relative part-of-speech encoder. Automatic
     // testing is performed in the module tests.
@@ -290,13 +307,13 @@ mod tests {
         let mut sent = Sentence::new();
         sent.push(TokenBuilder::new("a").pos("A").into());
 
-        let decoder = RelativePOSEncoder;
+        let decoder = RelativePOSEncoder::new(ROOT_RELATION);
         let labels = vec![vec![
             EncodingProb::new(
                 DependencyEncoding {
-                    label: "ROOT".into(),
+                    label: ROOT_RELATION.into(),
                     head: RelativePOS {
-                        pos: "ROOT".into(),
+                        pos: ROOT_POS.into(),
                         position: -2,
                     },
                 },
@@ -304,9 +321,9 @@ mod tests {
             ),
             EncodingProb::new(
                 DependencyEncoding {
-                    label: "ROOT".into(),
+                    label: ROOT_RELATION.into(),
                     head: RelativePOS {
-                        pos: "ROOT".into(),
+                        pos: ROOT_POS.into(),
                         position: -1,
                     },
                 },
@@ -318,7 +335,7 @@ mod tests {
 
         assert_eq!(
             sent.dep_graph().head(1),
-            Some(DepTriple::new(0, Some("ROOT"), 1))
+            Some(DepTriple::new(0, Some(ROOT_RELATION), 1))
         );
     }
 }

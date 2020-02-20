@@ -5,8 +5,6 @@ use petgraph::algo::tarjan_scc;
 use super::DependencyEncoding;
 use crate::EncodingProb;
 
-static ROOT_RELATION: &str = "ROOT";
-
 /// Attach orphan tokens to `head_idx`.
 ///
 /// This function attaches orphan tokens to `head_idx`, with the
@@ -77,7 +75,11 @@ pub fn break_cycles(sent: &mut Sentence, root_idx: usize) {
 ///
 /// The token which with the highest-probability encoding with the
 /// ROOT label is used.
-fn find_root_candidate<'a, S, H, F>(labels: &[S], decode_fun: F) -> Option<(DepTriple<String>, f32)>
+fn find_root_candidate<'a, S, H, F>(
+    labels: &[S],
+    decode_fun: F,
+    root_relation: &str,
+) -> Option<(DepTriple<String>, f32)>
 where
     H: 'a + Clone,
     S: AsRef<[EncodingProb<DependencyEncoding<H>>]>,
@@ -90,8 +92,8 @@ where
             encodings
                 .as_ref()
                 .iter()
-                // Find encodings with a ROOT telation...
-                .filter(|e| e.encoding().label() == ROOT_RELATION)
+                // Find encodings with a root relation...
+                .filter(|e| e.encoding().label() == root_relation)
                 // ...that can be decoded.
                 .filter_map(|e| decode_fun(idx + 1, e.encoding()).map(|triple| (triple, e.prob())))
                 .next()
@@ -110,6 +112,7 @@ pub fn find_or_create_root<'a, S, H, F>(
     labels: &[S],
     sentence: &mut Sentence,
     decode_fun: F,
+    root_relation: &str,
 ) -> usize
 where
     H: 'a + Clone,
@@ -124,9 +127,9 @@ where
 
     // Find a suitable root token from the token encodings.  If there
     // is no such token, use the first token of the sentence.
-    let triple = match find_root_candidate(labels, decode_fun) {
+    let triple = match find_root_candidate(labels, decode_fun, root_relation) {
         Some((triple, _)) => triple,
-        None => DepTriple::new(0, Some(ROOT_RELATION.to_owned()), 1),
+        None => DepTriple::new(0, Some(root_relation.to_owned()), 1),
     };
 
     // Attach the new root.
@@ -157,9 +160,12 @@ mod tests {
     use conllx::graph::{DepTriple, Sentence};
     use conllx::token::TokenBuilder;
 
-    use super::{attach_orphans, break_cycles, find_or_create_root, first_root, ROOT_RELATION};
+    use super::{attach_orphans, break_cycles, find_or_create_root, first_root};
     use crate::deprel::{pos_position_table, DependencyEncoding, RelativePOS, RelativePOSEncoder};
     use crate::{EncodingProb, SentenceEncoder};
+
+    const ROOT_POS: &str = "ROOT";
+    const ROOT_RELATION: &str = "root";
 
     fn test_graph() -> Sentence {
         let mut sent = Sentence::new();
@@ -233,7 +239,7 @@ mod tests {
         sent.dep_graph_mut()
             .add_deprel(DepTriple::new(0, Some(ROOT_RELATION), 3));
 
-        let encodings: Vec<_> = RelativePOSEncoder
+        let encodings: Vec<_> = RelativePOSEncoder::new(ROOT_RELATION)
             .encode(&test_graph())
             .unwrap()
             .into_iter()
@@ -253,7 +259,7 @@ mod tests {
             vec![EncodingProb::new(
                 DependencyEncoding {
                     label: ROOT_RELATION.to_owned(),
-                    head: RelativePOS::new(ROOT_RELATION, -1),
+                    head: RelativePOS::new(ROOT_POS, -1),
                 },
                 0.4,
             )],
@@ -262,14 +268,14 @@ mod tests {
                 EncodingProb::new(
                     DependencyEncoding {
                         label: "distractor".to_owned(),
-                        head: RelativePOS::new(ROOT_RELATION, -1),
+                        head: RelativePOS::new(ROOT_POS, -1),
                     },
                     0.6,
                 ),
                 EncodingProb::new(
                     DependencyEncoding {
                         label: ROOT_RELATION.to_owned(),
-                        head: RelativePOS::new(ROOT_RELATION, -1),
+                        head: RelativePOS::new(ROOT_POS, -1),
                     },
                     0.4,
                 ),
@@ -277,16 +283,19 @@ mod tests {
             vec![EncodingProb::new(
                 DependencyEncoding {
                     label: ROOT_RELATION.to_owned(),
-                    head: RelativePOS::new(ROOT_RELATION, -1),
+                    head: RelativePOS::new(ROOT_POS, -1),
                 },
                 0.3,
             )],
         ];
 
         let pos_table = pos_position_table(&sent);
-        find_or_create_root(&encodings, &mut sent, |idx, encoding| {
-            RelativePOSEncoder::decode_idx(&pos_table, idx, encoding).ok()
-        });
+        find_or_create_root(
+            &encodings,
+            &mut sent,
+            |idx, encoding| RelativePOSEncoder::decode_idx(&pos_table, idx, encoding).ok(),
+            ROOT_RELATION,
+        );
 
         assert_eq!(sent, test_graph());
     }

@@ -52,7 +52,9 @@ mod tests {
     use super::{RelativePOSEncoder, RelativePositionEncoder};
     use crate::{EncodingProb, SentenceDecoder, SentenceEncoder};
 
-    static NON_PROJECTIVE_DATA: &'static str = "testdata/nonprojective.conll";
+    const NON_PROJECTIVE_DATA: &str = "testdata/nonprojective.conll";
+
+    const ROOT_RELATION: &str = "root";
 
     fn copy_sentence_without_deprels(sentence: &Sentence) -> Sentence {
         let mut copy = Sentence::new();
@@ -95,13 +97,13 @@ mod tests {
 
     #[test]
     fn relative_pos_position() {
-        let encoder = RelativePOSEncoder;
+        let encoder = RelativePOSEncoder::new(ROOT_RELATION);
         test_encoding(NON_PROJECTIVE_DATA, encoder);
     }
 
     #[test]
     fn relative_position() {
-        let encoder = RelativePositionEncoder;
+        let encoder = RelativePositionEncoder::new(ROOT_RELATION);
         test_encoding(NON_PROJECTIVE_DATA, encoder);
     }
 }

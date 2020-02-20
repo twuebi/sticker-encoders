@@ -25,7 +25,17 @@ impl ToString for DependencyEncoding<RelativePosition> {
 /// dependency relation is encoded as-is. The position of the head
 /// is encoded relative to the (dependent) token.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct RelativePositionEncoder;
+pub struct RelativePositionEncoder {
+    root_relation: String,
+}
+
+impl RelativePositionEncoder {
+    pub fn new(root_relation: impl Into<String>) -> Self {
+        RelativePositionEncoder {
+            root_relation: root_relation.into(),
+        }
+    }
+}
 
 impl RelativePositionEncoder {
     fn decode_idx(
@@ -99,9 +109,12 @@ impl SentenceDecoder for RelativePositionEncoder {
 
         // Fixup tree.
         let sentence_len = sentence.len();
-        let root_idx = find_or_create_root(labels, sentence, |idx, encoding| {
-            Self::decode_idx(idx, sentence_len, encoding).ok()
-        });
+        let root_idx = find_or_create_root(
+            labels,
+            sentence,
+            |idx, encoding| Self::decode_idx(idx, sentence_len, encoding).ok(),
+            &self.root_relation,
+        );
         attach_orphans(labels, sentence, root_idx);
         break_cycles(sentence, root_idx);
 
@@ -117,6 +130,8 @@ mod tests {
     use super::{RelativePosition, RelativePositionEncoder};
     use crate::deprel::{DecodeError, DependencyEncoding};
     use crate::{EncodingProb, SentenceDecoder};
+
+    const ROOT_RELATION: &str = "root";
 
     // Small tests for the relative position encoder. Automatic
     // testing is performed in the module tests.
@@ -145,18 +160,18 @@ mod tests {
         let mut sent = Sentence::new();
         sent.push(TokenBuilder::new("a").pos("A").into());
 
-        let decoder = RelativePositionEncoder;
+        let decoder = RelativePositionEncoder::new(ROOT_RELATION);
         let labels = vec![vec![
             EncodingProb::new(
                 DependencyEncoding {
-                    label: "ROOT".into(),
+                    label: ROOT_RELATION.into(),
                     head: RelativePosition(-2),
                 },
                 1.0,
             ),
             EncodingProb::new(
                 DependencyEncoding {
-                    label: "ROOT".into(),
+                    label: ROOT_RELATION.into(),
                     head: RelativePosition(-1),
                 },
                 1.0,
@@ -167,7 +182,7 @@ mod tests {
 
         assert_eq!(
             sent.dep_graph().head(1),
-            Some(DepTriple::new(0, Some("ROOT"), 1))
+            Some(DepTriple::new(0, Some(ROOT_RELATION), 1))
         );
     }
 }
