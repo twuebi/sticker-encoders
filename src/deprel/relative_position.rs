@@ -1,4 +1,4 @@
-use conllx::graph::{DepTriple, Sentence};
+use conllu::graph::{DepTriple, Sentence};
 use failure::Error;
 use serde_derive::{Deserialize, Serialize};
 
@@ -124,8 +124,8 @@ impl SentenceDecoder for RelativePositionEncoder {
 
 #[cfg(test)]
 mod tests {
-    use conllx::graph::{DepTriple, Sentence};
-    use conllx::token::TokenBuilder;
+    use conllu::graph::{DepTriple, Sentence};
+    use conllu::token::TokenBuilder;
 
     use super::{RelativePosition, RelativePositionEncoder};
     use crate::deprel::{DecodeError, DependencyEncoding};
@@ -139,8 +139,8 @@ mod tests {
     #[test]
     fn position_out_of_bounds() {
         let mut sent = Sentence::new();
-        sent.push(TokenBuilder::new("a").pos("A").into());
-        sent.push(TokenBuilder::new("b").pos("B").into());
+        sent.push(TokenBuilder::new("a").xpos("A").into());
+        sent.push(TokenBuilder::new("b").xpos("B").into());
 
         assert_eq!(
             RelativePositionEncoder::decode_idx(
@@ -158,7 +158,7 @@ mod tests {
     #[test]
     fn backoff() {
         let mut sent = Sentence::new();
-        sent.push(TokenBuilder::new("a").pos("A").into());
+        sent.push(TokenBuilder::new("a").xpos("A").into());
 
         let decoder = RelativePositionEncoder::new(ROOT_RELATION);
         let labels = vec![vec![

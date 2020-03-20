@@ -16,7 +16,7 @@ exclude = [
 ]
 
 [dependencies]
-conllx = "0.12.1"
+conllu = "0.3"
 edit_tree = "0.1.1"
 failure = "0.1"
 numberer = "0.1"

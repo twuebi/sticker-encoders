@@ -1,4 +1,4 @@
-use conllx::graph::{Node, Sentence};
+use conllu::graph::{Node, Sentence};
 use edit_tree::{Apply, EditTree};
 use failure::{Error, Fail};
 use serde::{Deserialize, Serialize};
@@ -114,8 +114,8 @@ impl SentenceEncoder for EditTreeEncoder {
 mod tests {
     use std::iter;
 
-    use conllx::graph::{Node, Sentence};
-    use conllx::token::{Token, TokenBuilder};
+    use conllu::graph::{Node, Sentence};
+    use conllu::token::{Token, TokenBuilder};
     use edit_tree::EditTree as EditTreeInner;
 
     use super::{BackoffStrategy, EditTree, EditTreeEncoder};

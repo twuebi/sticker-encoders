@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use conllx::graph::{DepTriple, Node, Sentence};
+use conllu::graph::{DepTriple, Node, Sentence};
+use conllu::token::Token;
 use failure::Error;
 use serde_derive::{Deserialize, Serialize};
 
@@ -10,6 +11,26 @@ use super::{
 use crate::{EncodingProb, SentenceDecoder, SentenceEncoder};
 
 const ROOT_POS: &str = "ROOT";
+
+/// Part-of-speech layer.
+#[serde(rename_all = "lowercase")]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum POSLayer {
+    /// Universal part-of-speech tag.
+    UPos,
+
+    /// Language-specific part-of-speech tag.
+    XPos,
+}
+
+impl POSLayer {
+    fn pos(self, token: &Token) -> Option<&str> {
+        match self {
+            POSLayer::UPos => token.upos(),
+            POSLayer::XPos => token.xpos(),
+        }
+    }
+}
 
 /// Relative head position by part-of-speech.
 ///
@@ -46,12 +67,14 @@ impl ToString for DependencyEncoding<RelativePOS> {
 /// is encoded relative to the (dependent) token by part-of-speech.
 #[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
 pub struct RelativePOSEncoder {
+    pos_layer: POSLayer,
     root_relation: String,
 }
 
 impl RelativePOSEncoder {
-    pub fn new(root_relation: impl Into<String>) -> Self {
+    pub fn new(pos_layer: POSLayer, root_relation: impl Into<String>) -> Self {
         RelativePOSEncoder {
+            pos_layer,
             root_relation: root_relation.into(),
         }
     }
@@ -144,13 +167,32 @@ impl RelativePOSEncoder {
 
         Ok(indices[head_position as usize])
     }
+
+    pub(crate) fn pos_position_table(&self, sentence: &Sentence) -> HashMap<String, Vec<usize>> {
+        let mut table = HashMap::new();
+
+        for (idx, node) in sentence.iter().enumerate() {
+            let pos = match node {
+                Node::Root => ROOT_POS.into(),
+                Node::Token(token) => match self.pos_layer.pos(token) {
+                    Some(pos) => pos.into(),
+                    None => continue,
+                },
+            };
+
+            let indices = table.entry(pos).or_insert_with(|| vec![]);
+            indices.push(idx);
+        }
+
+        table
+    }
 }
 
 impl SentenceEncoder for RelativePOSEncoder {
     type Encoding = DependencyEncoding<RelativePOS>;
 
     fn encode(&self, sentence: &Sentence) -> Result<Vec<Self::Encoding>, Error> {
-        let pos_table = pos_position_table(&sentence);
+        let pos_table = self.pos_position_table(&sentence);
 
         let mut encoded = Vec::with_capacity(sentence.len());
         for idx in 0..sentence.len() {
@@ -168,8 +210,9 @@ impl SentenceEncoder for RelativePOSEncoder {
 
             let head_pos = match &sentence[triple.head()] {
                 Node::Root => ROOT_POS,
-                Node::Token(head_token) => head_token
-                    .pos()
+                Node::Token(head_token) => self
+                    .pos_layer
+                    .pos(head_token)
                     .ok_or_else(|| EncodeError::missing_pos(idx, sentence))?,
             };
 
@@ -199,7 +242,7 @@ impl SentenceDecoder for RelativePOSEncoder {
     where
         S: AsRef<[EncodingProb<Self::Encoding>]>,
     {
-        let pos_table = pos_position_table(&sentence);
+        let pos_table = self.pos_position_table(&sentence);
 
         let token_indices: Vec<_> = (0..sentence.len())
             .filter(|&idx| sentence[idx].is_token())
@@ -230,34 +273,15 @@ impl SentenceDecoder for RelativePOSEncoder {
     }
 }
 
-pub(crate) fn pos_position_table(sentence: &Sentence) -> HashMap<String, Vec<usize>> {
-    let mut table = HashMap::new();
-
-    for (idx, node) in sentence.iter().enumerate() {
-        let pos = match node {
-            Node::Root => ROOT_POS.into(),
-            Node::Token(token) => match token.pos() {
-                Some(pos) => pos.into(),
-                None => continue,
-            },
-        };
-
-        let indices = table.entry(pos).or_insert_with(|| vec![]);
-        indices.push(idx);
-    }
-
-    table
-}
-
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
     use std::iter::FromIterator;
 
-    use conllx::graph::{DepTriple, Sentence};
-    use conllx::token::TokenBuilder;
+    use conllu::graph::{DepTriple, Sentence};
+    use conllu::token::TokenBuilder;
 
-    use super::{RelativePOS, RelativePOSEncoder, ROOT_POS};
+    use super::{POSLayer, RelativePOS, RelativePOSEncoder, ROOT_POS};
     use crate::deprel::{DecodeError, DependencyEncoding};
     use crate::{EncodingProb, SentenceDecoder};
 
@@ -305,9 +329,9 @@ mod tests {
     #[test]
     fn backoff() {
         let mut sent = Sentence::new();
-        sent.push(TokenBuilder::new("a").pos("A").into());
+        sent.push(TokenBuilder::new("a").xpos("A").into());
 
-        let decoder = RelativePOSEncoder::new(ROOT_RELATION);
+        let decoder = RelativePOSEncoder::new(POSLayer::XPos, ROOT_RELATION);
         let labels = vec![vec![
             EncodingProb::new(
                 DependencyEncoding {

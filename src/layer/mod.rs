@@ -1,7 +1,7 @@
 //! CoNLL-X layer encoder.
 
-use conllx::graph::{Node, Sentence};
-use conllx::token::{Features, Token};
+use conllu::graph::{Node, Sentence};
+use conllu::token::Token;
 use failure::Error;
 use serde_derive::{Deserialize, Serialize};
 
@@ -14,9 +14,10 @@ use self::error::*;
 #[serde(rename_all = "lowercase")]
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum Layer {
-    CPos,
-    Pos,
+    UPos,
+    XPos,
     Feature(String),
+    Misc(String),
 }
 
 /// Layer values.
@@ -34,20 +35,17 @@ impl LayerValue for Token {
         let value = value.into();
 
         match layer {
-            Layer::CPos => {
-                self.set_cpos(Some(value));
+            Layer::UPos => {
+                self.set_upos(Some(value));
             }
-            Layer::Pos => {
-                self.set_pos(Some(value));
+            Layer::XPos => {
+                self.set_xpos(Some(value));
             }
             Layer::Feature(ref feature) => {
-                if self.features().is_none() {
-                    self.set_features(Some(Features::default()));
-                }
-
-                self.features_mut()
-                    .unwrap()
-                    .insert(feature.clone(), Some(value));
+                self.features_mut().insert(feature.clone(), value);
+            }
+            Layer::Misc(ref misc) => {
+                self.misc_mut().insert(misc.clone(), Some(value));
             }
         };
     }
@@ -55,11 +53,10 @@ impl LayerValue for Token {
     /// Look up the layer value in a token.
     fn value(&self, layer: &Layer) -> Option<&str> {
         match layer {
-            Layer::CPos => self.cpos(),
-            Layer::Pos => self.pos(),
-            Layer::Feature(ref feature) => {
-                self.features()?.get(feature)?.as_ref().map(String::as_str)
-            }
+            Layer::UPos => self.upos(),
+            Layer::XPos => self.xpos(),
+            Layer::Feature(ref feature) => self.features().get(feature).map(String::as_str),
+            Layer::Misc(ref misc) => self.misc().get(misc)?.as_ref().map(String::as_str),
         }
     }
 }
@@ -124,35 +121,44 @@ impl SentenceEncoder for LayerEncoder {
 
 #[cfg(test)]
 mod tests {
-    use crate::layer::{Layer, LayerValue};
+    use std::convert::TryFrom;
 
-    use conllx::token::{Features, Token, TokenBuilder};
+    use conllu::token::{Features, Misc, Token, TokenBuilder};
+
+    use crate::layer::{Layer, LayerValue};
 
     #[test]
     fn layer() {
         let token: Token = TokenBuilder::new("test")
-            .cpos("CP")
-            .pos("P")
-            .features(Features::from("a:b|c:d"))
+            .upos("CP")
+            .xpos("P")
+            .features(Features::try_from("a=b|c=d").unwrap())
+            .misc(Misc::from("u=v|x=y"))
             .into();
 
-        assert_eq!(token.value(&Layer::CPos), Some("CP"));
-        assert_eq!(token.value(&Layer::Pos), Some("P"));
+        assert_eq!(token.value(&Layer::UPos), Some("CP"));
+        assert_eq!(token.value(&Layer::XPos), Some("P"));
         assert_eq!(token.value(&Layer::Feature("a".to_owned())), Some("b"));
         assert_eq!(token.value(&Layer::Feature("c".to_owned())), Some("d"));
         assert_eq!(token.value(&Layer::Feature("e".to_owned())), None);
+        assert_eq!(token.value(&Layer::Misc("u".to_owned())), Some("v"));
+        assert_eq!(token.value(&Layer::Misc("x".to_owned())), Some("y"));
+        assert_eq!(token.value(&Layer::Misc("z".to_owned())), None);
     }
 
     #[test]
     fn set_layer() {
         let mut token: Token = TokenBuilder::new("test").into();
-        token.set_value(&Layer::CPos, "CP");
-        token.set_value(&Layer::Pos, "P");
+        token.set_value(&Layer::UPos, "CP");
+        token.set_value(&Layer::XPos, "P");
         token.set_value(&Layer::Feature("a".to_owned()), "b");
+        token.set_value(&Layer::Misc("u".to_owned()), "v");
 
-        assert_eq!(token.value(&Layer::CPos), Some("CP"));
-        assert_eq!(token.value(&Layer::Pos), Some("P"));
+        assert_eq!(token.value(&Layer::UPos), Some("CP"));
+        assert_eq!(token.value(&Layer::XPos), Some("P"));
         assert_eq!(token.value(&Layer::Feature("a".to_owned())), Some("b"));
         assert_eq!(token.value(&Layer::Feature("c".to_owned())), None);
+        assert_eq!(token.value(&Layer::Misc("u".to_owned())), Some("v"));
+        assert_eq!(token.value(&Layer::Misc("x".to_owned())), None);
     }
 }

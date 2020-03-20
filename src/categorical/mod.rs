@@ -1,7 +1,7 @@
 use std::hash::Hash;
 use std::marker::PhantomData;
 
-use conllx::graph::Sentence;
+use conllu::graph::Sentence;
 use failure::Error;
 use numberer::Numberer;
 use serde_derive::{Deserialize, Serialize};
@@ -209,14 +209,14 @@ mod tests {
     use std::io::BufReader;
     use std::path::Path;
 
-    use conllx::io::Reader;
+    use conllu::io::Reader;
     use numberer::Numberer;
 
     use super::{EncodingProb, MutableCategoricalEncoder, SentenceDecoder, SentenceEncoder};
     use crate::layer::Layer;
     use crate::layer::LayerEncoder;
 
-    static NON_PROJECTIVE_DATA: &'static str = "testdata/nonprojective.conll";
+    static NON_PROJECTIVE_DATA: &'static str = "testdata/lassy-small-dev.conllu";
 
     fn test_encoding<P, E, C>(path: P, encoder_decoder: E)
     where
@@ -251,7 +251,7 @@ mod tests {
     #[test]
     fn categorical_encoder() {
         let numberer = Numberer::new(1);
-        let encoder = LayerEncoder::new(Layer::Pos);
+        let encoder = LayerEncoder::new(Layer::XPos);
         let categorical_encoder = MutableCategoricalEncoder::new(encoder, numberer);
         assert_eq!(categorical_encoder.len(), 1);
         test_encoding(NON_PROJECTIVE_DATA, categorical_encoder);

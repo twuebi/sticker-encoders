@@ -1,6 +1,6 @@
 //! Label encoders.
 
-use conllx::graph::Sentence;
+use conllu::graph::Sentence;
 use failure::Error;
 
 pub mod categorical;

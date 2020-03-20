@@ -1,7 +1,7 @@
 use std::fmt;
 
-use conllx::graph::{Node, Sentence};
-use conllx::token::Token;
+use conllu::graph::{Node, Sentence};
+use conllu::token::Token;
 use failure::Fail;
 
 /// Encoder errors.

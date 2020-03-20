@@ -1,4 +1,4 @@
-use conllx::graph::{DepTriple, Sentence};
+use conllu::graph::{DepTriple, Sentence};
 use ordered_float::OrderedFloat;
 use petgraph::algo::tarjan_scc;
 
@@ -157,11 +157,11 @@ fn first_root(sentence: &Sentence) -> Option<usize> {
 
 #[cfg(test)]
 mod tests {
-    use conllx::graph::{DepTriple, Sentence};
-    use conllx::token::TokenBuilder;
+    use conllu::graph::{DepTriple, Sentence};
+    use conllu::token::TokenBuilder;
 
     use super::{attach_orphans, break_cycles, find_or_create_root, first_root};
-    use crate::deprel::{pos_position_table, DependencyEncoding, RelativePOS, RelativePOSEncoder};
+    use crate::deprel::{DependencyEncoding, POSLayer, RelativePOS, RelativePOSEncoder};
     use crate::{EncodingProb, SentenceEncoder};
 
     const ROOT_POS: &str = "ROOT";
@@ -169,10 +169,10 @@ mod tests {
 
     fn test_graph() -> Sentence {
         let mut sent = Sentence::new();
-        sent.push(TokenBuilder::new("Die").pos("det").into());
-        sent.push(TokenBuilder::new("AWO").pos("noun").into());
-        sent.push(TokenBuilder::new("veruntreute").pos("verb").into());
-        sent.push(TokenBuilder::new("Spendengeld").pos("noun").into());
+        sent.push(TokenBuilder::new("Die").xpos("det").into());
+        sent.push(TokenBuilder::new("AWO").xpos("noun").into());
+        sent.push(TokenBuilder::new("veruntreute").xpos("verb").into());
+        sent.push(TokenBuilder::new("Spendengeld").xpos("noun").into());
         sent.dep_graph_mut()
             .add_deprel(DepTriple::new(2, Some("det"), 1));
         sent.dep_graph_mut()
@@ -187,10 +187,10 @@ mod tests {
 
     fn test_graph_cycle() -> Sentence {
         let mut sent = Sentence::new();
-        sent.push(TokenBuilder::new("Die").pos("det").into());
-        sent.push(TokenBuilder::new("AWO").pos("noun").into());
-        sent.push(TokenBuilder::new("veruntreute").pos("verb").into());
-        sent.push(TokenBuilder::new("Spendengeld").pos("noun").into());
+        sent.push(TokenBuilder::new("Die").upos("det").into());
+        sent.push(TokenBuilder::new("AWO").upos("noun").into());
+        sent.push(TokenBuilder::new("veruntreute").upos("verb").into());
+        sent.push(TokenBuilder::new("Spendengeld").upos("noun").into());
         sent.dep_graph_mut()
             .add_deprel(DepTriple::new(2, Some("det"), 1));
         sent.dep_graph_mut()
@@ -205,10 +205,10 @@ mod tests {
 
     fn test_graph_no_root() -> Sentence {
         let mut sent = Sentence::new();
-        sent.push(TokenBuilder::new("Die").pos("det").into());
-        sent.push(TokenBuilder::new("AWO").pos("noun").into());
-        sent.push(TokenBuilder::new("veruntreute").pos("verb").into());
-        sent.push(TokenBuilder::new("Spendengeld").pos("noun").into());
+        sent.push(TokenBuilder::new("Die").xpos("det").into());
+        sent.push(TokenBuilder::new("AWO").xpos("noun").into());
+        sent.push(TokenBuilder::new("veruntreute").xpos("verb").into());
+        sent.push(TokenBuilder::new("Spendengeld").xpos("noun").into());
         sent.dep_graph_mut()
             .add_deprel(DepTriple::new(2, Some("det"), 1));
         sent.dep_graph_mut()
@@ -230,16 +230,16 @@ mod tests {
     #[test]
     fn attach_two_orphans() {
         let mut sent = Sentence::new();
-        sent.push(TokenBuilder::new("Die").pos("det").into());
-        sent.push(TokenBuilder::new("AWO").pos("noun").into());
-        sent.push(TokenBuilder::new("veruntreute").pos("verb").into());
-        sent.push(TokenBuilder::new("Spendengeld").pos("noun").into());
+        sent.push(TokenBuilder::new("Die").xpos("det").into());
+        sent.push(TokenBuilder::new("AWO").xpos("noun").into());
+        sent.push(TokenBuilder::new("veruntreute").xpos("verb").into());
+        sent.push(TokenBuilder::new("Spendengeld").xpos("noun").into());
         sent.dep_graph_mut()
             .add_deprel(DepTriple::new(2, Some("det"), 1));
         sent.dep_graph_mut()
             .add_deprel(DepTriple::new(0, Some(ROOT_RELATION), 3));
 
-        let encodings: Vec<_> = RelativePOSEncoder::new(ROOT_RELATION)
+        let encodings: Vec<_> = RelativePOSEncoder::new(POSLayer::XPos, ROOT_RELATION)
             .encode(&test_graph())
             .unwrap()
             .into_iter()
@@ -289,7 +289,7 @@ mod tests {
             )],
         ];
 
-        let pos_table = pos_position_table(&sent);
+        let pos_table = RelativePOSEncoder::new(POSLayer::XPos, "root").pos_position_table(&sent);
         find_or_create_root(
             &encodings,
             &mut sent,

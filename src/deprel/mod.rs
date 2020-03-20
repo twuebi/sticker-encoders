@@ -46,18 +46,21 @@ mod tests {
     use std::io::BufReader;
     use std::path::Path;
 
-    use conllx::graph::{Node, Sentence};
-    use conllx::io::Reader;
+    use conllu::graph::{Node, Sentence};
+    use conllu::io::Reader;
 
-    use super::{RelativePOSEncoder, RelativePositionEncoder};
+    use super::{POSLayer, RelativePOSEncoder, RelativePositionEncoder};
     use crate::{EncodingProb, SentenceDecoder, SentenceEncoder};
 
-    const NON_PROJECTIVE_DATA: &str = "testdata/nonprojective.conll";
+    const NON_PROJECTIVE_DATA: &str = "testdata/lassy-small-dev.conllu";
 
     const ROOT_RELATION: &str = "root";
 
     fn copy_sentence_without_deprels(sentence: &Sentence) -> Sentence {
         let mut copy = Sentence::new();
+
+        copy.set_comments(sentence.comments().to_owned());
+
         for token in sentence.iter().filter_map(Node::token) {
             copy.push(token.clone());
         }
@@ -97,7 +100,7 @@ mod tests {
 
     #[test]
     fn relative_pos_position() {
-        let encoder = RelativePOSEncoder::new(ROOT_RELATION);
+        let encoder = RelativePOSEncoder::new(POSLayer::XPos, ROOT_RELATION);
         test_encoding(NON_PROJECTIVE_DATA, encoder);
     }
 
