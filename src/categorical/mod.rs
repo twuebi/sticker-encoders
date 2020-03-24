@@ -17,7 +17,7 @@ mod mutability {
 
     pub trait Number<V>
     where
-        V: Eq + Hash,
+        V: Clone + Eq + Hash,
     {
         fn new(numberer: Numberer<V>) -> Self;
 
@@ -31,7 +31,7 @@ mod mutability {
     #[derive(Deserialize, Serialize)]
     pub struct ImmutableNumberer<V>(Numberer<V>)
     where
-        V: Eq + Hash;
+        V: Clone + Eq + Hash;
 
     impl<V> Number<V> for ImmutableNumberer<V>
     where
@@ -57,7 +57,7 @@ mod mutability {
     #[derive(Deserialize, Serialize)]
     pub struct MutableNumberer<V>(RefCell<Numberer<V>>)
     where
-        V: Eq + Hash;
+        V: Clone + Eq + Hash;
 
     impl<V> Number<V> for MutableNumberer<V>
     where
@@ -98,7 +98,7 @@ pub type MutableCategoricalEncoder<E, V> = CategoricalEncoder<E, V, mutability::
 #[derive(Deserialize, Serialize)]
 pub struct CategoricalEncoder<E, V, M>
 where
-    V: Eq + Hash,
+    V: Clone + Eq + Hash,
     M: mutability::Number<V>,
 {
     inner: E,
@@ -108,7 +108,7 @@ where
 
 impl<E, V, M> CategoricalEncoder<E, V, M>
 where
-    V: Eq + Hash,
+    V: Clone + Eq + Hash,
     M: mutability::Number<V>,
 {
     pub fn new(encoder: E, numberer: Numberer<V>) -> Self {
@@ -156,7 +156,7 @@ where
 
 impl<E, V, M> CategoricalEncoder<E, V, M>
 where
-    V: Eq + Hash,
+    V: Clone + Eq + Hash,
     M: mutability::Number<V>,
 {
     pub fn is_empty(&self) -> bool {
