@@ -16,8 +16,30 @@ use self::error::*;
 pub enum Layer {
     UPos,
     XPos,
-    Feature(String),
-    Misc(String),
+    Feature {
+        feature: String,
+
+        // Default value if the feature is absent.
+        default: Option<String>,
+    },
+    Misc {
+        feature: String,
+
+        // Default value if the feature is absent.
+        default: Option<String>,
+    },
+}
+
+impl Layer {
+    /// Construct a feature layer.
+    pub fn feature(feature: String, default: Option<String>) -> Self {
+        Layer::Feature { feature, default }
+    }
+
+    /// Construct a miscellaneous feature layer.
+    pub fn misc(feature: String, default: Option<String>) -> Self {
+        Layer::Misc { feature, default }
+    }
 }
 
 /// Layer values.
@@ -26,7 +48,7 @@ pub trait LayerValue {
     fn set_value(&mut self, layer: &Layer, value: impl Into<String>);
 
     /// Get a layer value.
-    fn value(&self, layer: &Layer) -> Option<&str>;
+    fn value(&self, layer: &Layer) -> Option<String>;
 }
 
 impl LayerValue for Token {
@@ -41,22 +63,35 @@ impl LayerValue for Token {
             Layer::XPos => {
                 self.set_xpos(Some(value));
             }
-            Layer::Feature(ref feature) => {
+            Layer::Feature { feature, .. } => {
                 self.features_mut().insert(feature.clone(), value);
             }
-            Layer::Misc(ref misc) => {
-                self.misc_mut().insert(misc.clone(), Some(value));
+            Layer::Misc { feature, .. } => {
+                self.misc_mut().insert(feature.clone(), Some(value));
             }
         };
     }
 
     /// Look up the layer value in a token.
-    fn value(&self, layer: &Layer) -> Option<&str> {
+    fn value(&self, layer: &Layer) -> Option<String> {
         match layer {
-            Layer::UPos => self.upos(),
-            Layer::XPos => self.xpos(),
-            Layer::Feature(ref feature) => self.features().get(feature).map(String::as_str),
-            Layer::Misc(ref misc) => self.misc().get(misc)?.as_ref().map(String::as_str),
+            Layer::UPos => self.upos().map(ToOwned::to_owned),
+            Layer::XPos => self.xpos().map(ToOwned::to_owned),
+            Layer::Feature { feature, default } => self
+                .features()
+                .get(feature)
+                .cloned()
+                .or_else(|| default.clone()),
+            Layer::Misc { feature, default } => match self.misc().get(feature) {
+                // Feature with an associated value.
+                Some(Some(ref val)) => Some(val.clone()),
+
+                // Feature without an associated value, should not be used.
+                Some(None) => None,
+
+                // The feature is absent.
+                None => default.clone(),
+            },
         }
     }
 }
@@ -136,14 +171,41 @@ mod tests {
             .misc(Misc::from("u=v|x=y"))
             .into();
 
-        assert_eq!(token.value(&Layer::UPos), Some("CP"));
-        assert_eq!(token.value(&Layer::XPos), Some("P"));
-        assert_eq!(token.value(&Layer::Feature("a".to_owned())), Some("b"));
-        assert_eq!(token.value(&Layer::Feature("c".to_owned())), Some("d"));
-        assert_eq!(token.value(&Layer::Feature("e".to_owned())), None);
-        assert_eq!(token.value(&Layer::Misc("u".to_owned())), Some("v"));
-        assert_eq!(token.value(&Layer::Misc("x".to_owned())), Some("y"));
-        assert_eq!(token.value(&Layer::Misc("z".to_owned())), None);
+        assert_eq!(token.value(&Layer::UPos), Some("CP".to_string()));
+        assert_eq!(token.value(&Layer::XPos), Some("P".to_string()));
+        assert_eq!(
+            token.value(&Layer::feature("a".to_owned(), None)),
+            Some("b".to_string())
+        );
+        assert_eq!(
+            token.value(&Layer::feature("c".to_owned(), None)),
+            Some("d".to_string())
+        );
+        assert_eq!(token.value(&Layer::feature("e".to_owned(), None)), None);
+        assert_eq!(
+            token.value(&Layer::feature(
+                "e".to_owned(),
+                Some("some_default".to_string())
+            )),
+            Some("some_default".to_string())
+        );
+
+        assert_eq!(
+            token.value(&Layer::misc("u".to_owned(), None)),
+            Some("v".to_string())
+        );
+        assert_eq!(
+            token.value(&Layer::misc("x".to_owned(), None)),
+            Some("y".to_string())
+        );
+        assert_eq!(token.value(&Layer::misc("z".to_owned(), None)), None);
+        assert_eq!(
+            token.value(&Layer::misc(
+                "z".to_owned(),
+                Some("some_default".to_string())
+            )),
+            Some("some_default".to_string())
+        );
     }
 
     #[test]
@@ -151,14 +213,20 @@ mod tests {
         let mut token: Token = TokenBuilder::new("test").into();
         token.set_value(&Layer::UPos, "CP");
         token.set_value(&Layer::XPos, "P");
-        token.set_value(&Layer::Feature("a".to_owned()), "b");
-        token.set_value(&Layer::Misc("u".to_owned()), "v");
+        token.set_value(&Layer::feature("a".to_owned(), None), "b");
+        token.set_value(&Layer::misc("u".to_owned(), None), "v");
 
-        assert_eq!(token.value(&Layer::UPos), Some("CP"));
-        assert_eq!(token.value(&Layer::XPos), Some("P"));
-        assert_eq!(token.value(&Layer::Feature("a".to_owned())), Some("b"));
-        assert_eq!(token.value(&Layer::Feature("c".to_owned())), None);
-        assert_eq!(token.value(&Layer::Misc("u".to_owned())), Some("v"));
-        assert_eq!(token.value(&Layer::Misc("x".to_owned())), None);
+        assert_eq!(token.value(&Layer::UPos), Some("CP".to_string()));
+        assert_eq!(token.value(&Layer::XPos), Some("P".to_string()));
+        assert_eq!(
+            token.value(&Layer::feature("a".to_owned(), None)),
+            Some("b".to_string())
+        );
+        assert_eq!(token.value(&Layer::feature("c".to_owned(), None)), None);
+        assert_eq!(
+            token.value(&Layer::misc("u".to_owned(), None)),
+            Some("v".to_string())
+        );
+        assert_eq!(token.value(&Layer::misc("x".to_owned(), None)), None);
     }
 }
