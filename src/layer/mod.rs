@@ -28,6 +28,7 @@ pub enum Layer {
     },
 
     /// All morphological features represented as a string.
+    #[serde(rename = "feature_string")]
     FeatureString,
 
     Misc {
