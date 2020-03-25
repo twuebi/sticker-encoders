@@ -103,6 +103,8 @@ where
 {
     inner: E,
     numberer: M,
+
+    #[serde(skip)]
     _phantom: PhantomData<V>,
 }
 
