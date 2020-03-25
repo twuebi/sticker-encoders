@@ -1,7 +1,9 @@
 //! CoNLL-X layer encoder.
 
+use std::convert::TryFrom;
+
 use conllu::graph::{Node, Sentence};
-use conllu::token::Token;
+use conllu::token::{Features, Token};
 use failure::Error;
 use serde_derive::{Deserialize, Serialize};
 
@@ -16,12 +18,18 @@ use self::error::*;
 pub enum Layer {
     UPos,
     XPos,
+
+    /// A specific morphologic feature.
     Feature {
         feature: String,
 
         // Default value if the feature is absent.
         default: Option<String>,
     },
+
+    /// All morphological features represented as a string.
+    FeatureString,
+
     Misc {
         feature: String,
 
@@ -66,6 +74,11 @@ impl LayerValue for Token {
             Layer::Feature { feature, .. } => {
                 self.features_mut().insert(feature.clone(), value);
             }
+            Layer::FeatureString => {
+                self.set_features(
+                    Features::try_from(value.as_str()).expect("Invalid feature representation"),
+                );
+            }
             Layer::Misc { feature, .. } => {
                 self.misc_mut().insert(feature.clone(), Some(value));
             }
@@ -77,6 +90,7 @@ impl LayerValue for Token {
         match layer {
             Layer::UPos => self.upos().map(ToOwned::to_owned),
             Layer::XPos => self.xpos().map(ToOwned::to_owned),
+            Layer::FeatureString => Some(self.features().into()),
             Layer::Feature { feature, default } => self
                 .features()
                 .get(feature)
@@ -167,7 +181,7 @@ mod tests {
         let token: Token = TokenBuilder::new("test")
             .upos("CP")
             .xpos("P")
-            .features(Features::try_from("a=b|c=d").unwrap())
+            .features(Features::try_from("c=d|a=b").unwrap())
             .misc(Misc::from("u=v|x=y"))
             .into();
 
@@ -188,6 +202,10 @@ mod tests {
                 Some("some_default".to_string())
             )),
             Some("some_default".to_string())
+        );
+        assert_eq!(
+            token.value(&Layer::FeatureString),
+            Some("a=b|c=d".to_string())
         );
 
         assert_eq!(
@@ -211,6 +229,9 @@ mod tests {
     #[test]
     fn set_layer() {
         let mut token: Token = TokenBuilder::new("test").into();
+
+        assert_eq!(token.value(&Layer::FeatureString), Some("_".to_string()));
+
         token.set_value(&Layer::UPos, "CP");
         token.set_value(&Layer::XPos, "P");
         token.set_value(&Layer::feature("a".to_owned(), None), "b");
@@ -223,6 +244,8 @@ mod tests {
             Some("b".to_string())
         );
         assert_eq!(token.value(&Layer::feature("c".to_owned(), None)), None);
+        assert_eq!(token.value(&Layer::FeatureString), Some("a=b".to_string()));
+
         assert_eq!(
             token.value(&Layer::misc("u".to_owned(), None)),
             Some("v".to_string())
