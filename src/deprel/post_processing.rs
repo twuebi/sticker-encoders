@@ -34,6 +34,7 @@ where
 /// token has a head, apply `attach_orphans` to the dependency graph
 /// before this function.
 pub fn break_cycles(sent: &mut Sentence, root_idx: usize) {
+    let mut prev_components = Vec::new();
     loop {
         let components = {
             tarjan_scc(sent.get_ref())
@@ -47,11 +48,18 @@ pub fn break_cycles(sent: &mut Sentence, root_idx: usize) {
             break;
         }
 
-        for cycle in components.into_iter() {
+        // Avoid infinite loop.
+        assert_ne!(
+            components, prev_components,
+            "Could not break cycle(s) in:\n\n{}",
+            sent
+        );
+
+        for cycle in components.iter() {
             // Find the first token in the cycle, exclude the root
             // token to avoid self-cycles.
             let first_token = cycle
-                .into_iter()
+                .iter()
                 .filter(|idx| idx.index() != root_idx)
                 .min()
                 .expect("Cannot get minimum, but iterator is non-empty")
@@ -68,6 +76,8 @@ pub fn break_cycles(sent: &mut Sentence, root_idx: usize) {
             sent.dep_graph_mut()
                 .add_deprel(DepTriple::new(root_idx, head_rel, first_token));
         }
+
+        prev_components = components;
     }
 }
 
