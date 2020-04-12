@@ -1,7 +1,8 @@
 //! Label encoders.
 
+use std::error::Error;
+
 use conllu::graph::Sentence;
-use failure::Error;
 
 pub mod categorical;
 
@@ -56,7 +57,10 @@ where
 pub trait SentenceDecoder {
     type Encoding: ToOwned;
 
-    fn decode<S>(&self, labels: &[S], sentence: &mut Sentence) -> Result<(), Error>
+    /// The decoding error type.
+    type Error: Error;
+
+    fn decode<S>(&self, labels: &[S], sentence: &mut Sentence) -> Result<(), Self::Error>
     where
         S: AsRef<[EncodingProb<Self::Encoding>]>;
 }
@@ -68,6 +72,9 @@ pub trait SentenceDecoder {
 pub trait SentenceEncoder {
     type Encoding;
 
+    /// The encoding error type.
+    type Error: Error;
+
     /// Encode the given sentence.
-    fn encode(&self, sentence: &Sentence) -> Result<Vec<Self::Encoding>, Error>;
+    fn encode(&self, sentence: &Sentence) -> Result<Vec<Self::Encoding>, Self::Error>;
 }

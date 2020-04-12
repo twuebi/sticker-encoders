@@ -1,10 +1,9 @@
 //! CoNLL-X layer encoder.
 
-use std::convert::TryFrom;
+use std::convert::{Infallible, TryFrom};
 
 use conllu::graph::{Node, Sentence};
 use conllu::token::{Features, Token};
-use failure::Error;
 use serde_derive::{Deserialize, Serialize};
 
 use super::{EncodingProb, SentenceDecoder, SentenceEncoder};
@@ -127,7 +126,9 @@ impl LayerEncoder {
 impl SentenceDecoder for LayerEncoder {
     type Encoding = String;
 
-    fn decode<S>(&self, labels: &[S], sentence: &mut Sentence) -> Result<(), Error>
+    type Error = Infallible;
+
+    fn decode<S>(&self, labels: &[S], sentence: &mut Sentence) -> Result<(), Self::Error>
     where
         S: AsRef<[EncodingProb<Self::Encoding>]>,
     {
@@ -154,7 +155,9 @@ impl SentenceDecoder for LayerEncoder {
 impl SentenceEncoder for LayerEncoder {
     type Encoding = String;
 
-    fn encode(&self, sentence: &Sentence) -> Result<Vec<Self::Encoding>, Error> {
+    type Error = EncodeError;
+
+    fn encode(&self, sentence: &Sentence) -> Result<Vec<Self::Encoding>, Self::Error> {
         let mut encoding = Vec::with_capacity(sentence.len() - 1);
         for token in sentence.iter().filter_map(Node::token) {
             let label = token

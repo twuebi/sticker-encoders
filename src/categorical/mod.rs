@@ -2,7 +2,6 @@ use std::hash::Hash;
 use std::marker::PhantomData;
 
 use conllu::graph::Sentence;
-use failure::Error;
 use numberer::Numberer;
 use serde_derive::{Deserialize, Serialize};
 
@@ -129,14 +128,11 @@ where
     M: mutability::Number<D::Encoding>,
 {
     /// Decode without applying the inner decoder.
-    pub fn decode_without_inner<S>(
-        &self,
-        labels: &[S],
-    ) -> Result<Vec<Vec<EncodingProb<D::Encoding>>>, Error>
+    pub fn decode_without_inner<S>(&self, labels: &[S]) -> Vec<Vec<EncodingProb<D::Encoding>>>
     where
         S: AsRef<[EncodingProb<usize>]>,
     {
-        Ok(labels
+        labels
             .iter()
             .map(|encoding_probs| {
                 encoding_probs
@@ -152,7 +148,7 @@ where
                     })
                     .collect::<Vec<_>>()
             })
-            .collect::<Vec<_>>())
+            .collect::<Vec<_>>()
     }
 }
 
@@ -178,7 +174,9 @@ where
 {
     type Encoding = usize;
 
-    fn encode(&self, sentence: &Sentence) -> Result<Vec<Self::Encoding>, Error> {
+    type Error = E::Error;
+
+    fn encode(&self, sentence: &Sentence) -> Result<Vec<Self::Encoding>, Self::Error> {
         let encoding = self.inner.encode(sentence)?;
         let categorical_encoding = encoding
             .into_iter()
@@ -196,11 +194,13 @@ where
 {
     type Encoding = usize;
 
-    fn decode<S>(&self, labels: &[S], sentence: &mut Sentence) -> Result<(), Error>
+    type Error = D::Error;
+
+    fn decode<S>(&self, labels: &[S], sentence: &mut Sentence) -> Result<(), Self::Error>
     where
         S: AsRef<[EncodingProb<Self::Encoding>]>,
     {
-        let categorial_encoding = self.decode_without_inner(labels)?;
+        let categorial_encoding = self.decode_without_inner(labels);
         self.inner.decode(&categorial_encoding, sentence)
     }
 }

@@ -1,8 +1,8 @@
-use failure::Fail;
+use thiserror::Error;
 
-#[derive(Clone, Debug, Eq, Fail, PartialEq)]
+#[derive(Clone, Debug, Eq, Error, PartialEq)]
 pub enum EncodeError {
     /// The token does not have a label.
-    #[fail(display = "token without a label: '{}'", form)]
+    #[error("token without a label: '{form:?}'")]
     MissingLabel { form: String },
 }

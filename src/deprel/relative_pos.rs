@@ -1,8 +1,9 @@
+use std::convert::Infallible;
+
 use std::collections::HashMap;
 
 use conllu::graph::{DepTriple, Node, Sentence};
 use conllu::token::Token;
-use failure::Error;
 use serde_derive::{Deserialize, Serialize};
 
 use super::{
@@ -191,7 +192,9 @@ impl RelativePOSEncoder {
 impl SentenceEncoder for RelativePOSEncoder {
     type Encoding = DependencyEncoding<RelativePOS>;
 
-    fn encode(&self, sentence: &Sentence) -> Result<Vec<Self::Encoding>, Error> {
+    type Error = EncodeError;
+
+    fn encode(&self, sentence: &Sentence) -> Result<Vec<Self::Encoding>, Self::Error> {
         let pos_table = self.pos_position_table(&sentence);
 
         let mut encoded = Vec::with_capacity(sentence.len());
@@ -238,7 +241,9 @@ impl SentenceEncoder for RelativePOSEncoder {
 impl SentenceDecoder for RelativePOSEncoder {
     type Encoding = DependencyEncoding<RelativePOS>;
 
-    fn decode<S>(&self, labels: &[S], sentence: &mut Sentence) -> Result<(), Error>
+    type Error = Infallible;
+
+    fn decode<S>(&self, labels: &[S], sentence: &mut Sentence) -> Result<(), Self::Error>
     where
         S: AsRef<[EncodingProb<Self::Encoding>]>,
     {

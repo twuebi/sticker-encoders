@@ -1,15 +1,17 @@
+use std::convert::Infallible;
+
 use conllu::graph::{Node, Sentence};
 use edit_tree::{Apply, EditTree};
-use failure::{Error, Fail};
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 use super::{EncodingProb, SentenceDecoder, SentenceEncoder};
 
 /// Lemma encoding error.
-#[derive(Clone, Debug, Eq, Fail, PartialEq)]
+#[derive(Clone, Debug, Eq, Error, PartialEq)]
 pub enum EncodeError {
     /// The token does not have a lemma.
-    #[fail(display = "token without a lemma: '{}'", form)]
+    #[error("token without a lemma: '{form:?}'")]
     MissingLemma { form: String },
 }
 
@@ -42,7 +44,9 @@ impl EditTreeEncoder {
 impl SentenceDecoder for EditTreeEncoder {
     type Encoding = EditTree<char>;
 
-    fn decode<S>(&self, labels: &[S], sentence: &mut Sentence) -> Result<(), Error>
+    type Error = Infallible;
+
+    fn decode<S>(&self, labels: &[S], sentence: &mut Sentence) -> Result<(), Self::Error>
     where
         S: AsRef<[EncodingProb<Self::Encoding>]>,
     {
@@ -81,7 +85,9 @@ impl SentenceDecoder for EditTreeEncoder {
 impl SentenceEncoder for EditTreeEncoder {
     type Encoding = EditTree<char>;
 
-    fn encode(&self, sentence: &Sentence) -> Result<Vec<Self::Encoding>, Error> {
+    type Error = EncodeError;
+
+    fn encode(&self, sentence: &Sentence) -> Result<Vec<Self::Encoding>, Self::Error> {
         let mut encoding = Vec::with_capacity(sentence.len() - 1);
 
         for token in sentence.iter().filter_map(Node::token) {

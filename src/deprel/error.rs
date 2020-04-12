@@ -2,10 +2,10 @@ use std::fmt;
 
 use conllu::graph::{Node, Sentence};
 use conllu::token::Token;
-use failure::Fail;
+use thiserror::Error;
 
 /// Encoder errors.
-#[derive(Clone, Debug, Eq, Fail, PartialEq)]
+#[derive(Clone, Debug, Eq, Error, PartialEq)]
 pub enum EncodeError {
     /// The token does not have a head.
     MissingHead { token: usize, sent: Vec<String> },
@@ -95,13 +95,13 @@ impl fmt::Display for EncodeError {
 }
 
 /// Decoder errors.
-#[derive(Clone, Copy, Debug, Eq, Fail, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
 pub(crate) enum DecodeError {
     /// The head position is out of bounds.
-    #[fail(display = "position out of bounds")]
+    #[error("position out of bounds")]
     PositionOutOfBounds,
 
     /// The head part-of-speech tag does not occur in the sentence.
-    #[fail(display = "unknown part-of-speech tag")]
+    #[error("unknown part-of-speech tag")]
     InvalidPOS,
 }
