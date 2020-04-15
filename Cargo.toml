@@ -16,11 +16,11 @@ exclude = [
 ]
 
 [dependencies]
-conllu = "0.3"
+conllu = "0.5"
 edit_tree = "0.1.1"
 numberer = "0.2"
 ordered-float = "1"
-petgraph = "0.4"
+petgraph = "0.5"
 serde = "1"
 serde_derive = "1"
 thiserror = "1"
