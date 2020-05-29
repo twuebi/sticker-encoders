@@ -2,8 +2,8 @@ use std::convert::Infallible;
 
 use std::collections::HashMap;
 
-use conllu::graph::{DepTriple, Node, Sentence};
-use conllu::token::Token;
+use conllx::graph::{DepTriple, Node, Sentence};
+use conllx::token::Token;
 use serde_derive::{Deserialize, Serialize};
 
 use super::{
@@ -18,17 +18,17 @@ const ROOT_POS: &str = "ROOT";
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum POSLayer {
     /// Universal part-of-speech tag.
-    UPos,
+    CPos,
 
     /// Language-specific part-of-speech tag.
-    XPos,
+    Pos,
 }
 
 impl POSLayer {
     fn pos(self, token: &Token) -> Option<&str> {
         match self {
-            POSLayer::UPos => token.upos(),
-            POSLayer::XPos => token.xpos(),
+            POSLayer::CPos => token.cpos(),
+            POSLayer::Pos => token.pos(),
         }
     }
 }
@@ -283,8 +283,8 @@ mod tests {
     use std::collections::HashMap;
     use std::iter::FromIterator;
 
-    use conllu::graph::{DepTriple, Sentence};
-    use conllu::token::TokenBuilder;
+    use conllx::graph::{DepTriple, Sentence};
+    use conllx::token::TokenBuilder;
 
     use super::{POSLayer, RelativePOS, RelativePOSEncoder, ROOT_POS};
     use crate::deprel::{DecodeError, DependencyEncoding};
@@ -334,9 +334,9 @@ mod tests {
     #[test]
     fn backoff() {
         let mut sent = Sentence::new();
-        sent.push(TokenBuilder::new("a").xpos("A").into());
+        sent.push(TokenBuilder::new("a").pos("A").into());
 
-        let decoder = RelativePOSEncoder::new(POSLayer::XPos, ROOT_RELATION);
+        let decoder = RelativePOSEncoder::new(POSLayer::Pos, ROOT_RELATION);
         let labels = vec![vec![
             EncodingProb::new(
                 DependencyEncoding {

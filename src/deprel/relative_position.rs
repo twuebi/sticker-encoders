@@ -1,6 +1,6 @@
 use std::convert::Infallible;
 
-use conllu::graph::{DepTriple, Sentence};
+use conllx::graph::{DepTriple, Sentence};
 use serde_derive::{Deserialize, Serialize};
 
 use super::{
@@ -129,8 +129,8 @@ impl SentenceDecoder for RelativePositionEncoder {
 
 #[cfg(test)]
 mod tests {
-    use conllu::graph::{DepTriple, Sentence};
-    use conllu::token::TokenBuilder;
+    use conllx::graph::{DepTriple, Sentence};
+    use conllx::token::TokenBuilder;
 
     use super::{RelativePosition, RelativePositionEncoder};
     use crate::deprel::{DecodeError, DependencyEncoding};

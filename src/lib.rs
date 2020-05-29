@@ -2,7 +2,7 @@
 
 use std::error::Error;
 
-use conllu::graph::Sentence;
+use conllx::graph::Sentence;
 
 pub mod categorical;
 
@@ -10,7 +10,7 @@ pub mod deprel;
 
 pub mod layer;
 
-pub mod lemma;
+//pub mod lemma;
 
 /// An encoding with its probability.
 #[derive(Debug)]

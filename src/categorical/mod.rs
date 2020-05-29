@@ -1,7 +1,7 @@
 use std::hash::Hash;
 use std::marker::PhantomData;
 
-use conllu::graph::Sentence;
+use conllx::graph::Sentence;
 use numberer::Numberer;
 use serde_derive::{Deserialize, Serialize};
 
@@ -211,7 +211,7 @@ mod tests {
     use std::io::BufReader;
     use std::path::Path;
 
-    use conllu::io::Reader;
+    use conllx::io::Reader;
     use numberer::Numberer;
 
     use super::{EncodingProb, MutableCategoricalEncoder, SentenceDecoder, SentenceEncoder};

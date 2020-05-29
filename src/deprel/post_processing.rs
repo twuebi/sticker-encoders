@@ -1,4 +1,4 @@
-use conllu::graph::{DepTriple, Sentence};
+use conllx::graph::{DepTriple, Sentence};
 use ordered_float::OrderedFloat;
 use petgraph::algo::tarjan_scc;
 
@@ -175,8 +175,8 @@ fn first_root(sentence: &Sentence) -> Option<usize> {
 
 #[cfg(test)]
 mod tests {
-    use conllu::graph::{DepTriple, Sentence};
-    use conllu::token::TokenBuilder;
+    use conllx::graph::{DepTriple, Sentence};
+    use conllx::token::TokenBuilder;
 
     use super::{attach_orphans, break_cycles, find_or_create_root, first_root};
     use crate::deprel::{DependencyEncoding, POSLayer, RelativePOS, RelativePOSEncoder};

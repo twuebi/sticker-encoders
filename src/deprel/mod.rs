@@ -46,13 +46,13 @@ mod tests {
     use std::io::BufReader;
     use std::path::Path;
 
-    use conllu::graph::{Node, Sentence};
-    use conllu::io::Reader;
+    use conllx::graph::{Node, Sentence};
+    use conllx::io::Reader;
 
     use super::{POSLayer, RelativePOSEncoder, RelativePositionEncoder};
     use crate::{EncodingProb, SentenceDecoder, SentenceEncoder};
 
-    const NON_PROJECTIVE_DATA: &str = "testdata/lassy-small-dev.conllu";
+    const NON_PROJECTIVE_DATA: &str = "testdata/lassy-small-dev.conllx";
 
     const ROOT_RELATION: &str = "root";
 
